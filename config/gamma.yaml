@@ -1,0 +1,22 @@
+# gamma の偽ファームの定数。gamma_turret_fw の src/robot.hpp（制御定数）と **対で更新する**。
+# 値の意味は設計書 docs/superpowers/specs/2026-10-24-gamma-sim-design.md 4.3
+gamma_fake_node:
+  ros__parameters:
+    link_path: /tmp/gamma_fake   # robot_bridge の device に渡すシンボリックリンク
+    tick_hz: 100
+    leg:
+      angle_min: 0.15            # [rad] LEG_ANGLE_MIN（0 側が最低車高）
+      angle_max: 1.45            # [rad] LEG_ANGLE_MAX
+      tilt_gain: 1.0             # [rad/rad] LEG_TILT_GAIN
+      azimuth: [-0.7854, 0.7854, -2.3562, 2.3562]   # [rad] LEG_AZIMUTH: FR, FL, BR, BL
+      ramp_rate: 0.5             # [rad/s] LEG_RAMP_RATE
+    wheel:
+      wheel_d: 0.06              # [m] WHEEL_D
+      body_d: 0.28               # [m] BODY_D
+      sign: -1.0                 # WHEEL_SIGN
+    chassis:
+      vel_max: 1.0               # [m/s] CHASSIS_VEL_MAX
+      rot_max: 3.0               # [rad/s] CHASSIS_ROT_MAX
+      spin_speed: 5.0            # [rad/s] SPIN_SPEED（無限回転）
+    watchdog_s: 0.5              # WATCHDOG_S
+    follow_neck_pitch_roll: false  # true: 首 Pitch / Roll を JOINT_CMD に追従させる（確認用。ファームは送らない）

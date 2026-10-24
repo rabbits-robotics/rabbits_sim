@@ -24,6 +24,21 @@ add_library(rabbits_sim_lib STATIC
 )
 ament_target_dependencies(rabbits_sim_lib rabcl)
 
+add_executable(gamma_fake_node src/gamma_fake_node.cpp)
+target_link_libraries(gamma_fake_node rabbits_sim_lib util)
+ament_target_dependencies(gamma_fake_node rclcpp rabcl)
+
+install(TARGETS
+  gamma_fake_node
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(DIRECTORY
+  launch
+  config
+  DESTINATION share/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
