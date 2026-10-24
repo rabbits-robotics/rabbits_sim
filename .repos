@@ -1,0 +1,5 @@
+repositories:
+  rabcl:
+    type: git
+    url: https://github.com/rabbits-robotics/rabcl.git
+    version: main

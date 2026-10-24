@@ -136,7 +136,7 @@ gamma_fake_node:
 
 ## 5. rabbits_description（gamma の URDF）
 
-- `urdf/gamma.xacro`（最上位）: 既存の proto1 と同じく部品マクロで組む。関節名は rabbits_bridge `config/gamma.yaml` の 11 個と **完全に一致**させる: `yaw_joint`, `pitch_joint`, `roll_joint`, `right_front_wheel_joint`, `left_front_wheel_joint`, `right_back_wheel_joint`, `left_back_wheel_joint`, `right_front_leg_joint`, `left_front_leg_joint`, `right_back_leg_joint`, `left_back_leg_joint`。
+- `urdf/gamma/gamma.xacro`（最上位）: 既存の proto1 と同じく部品マクロで組む。配置は機体ごと（`urdf/<機体>/`、`meshes/<機体>/`）、共有は `urdf/common/`（ユーザー決定 2026-10-24）。関節名は rabbits_bridge `config/gamma.yaml` の 11 個と **完全に一致**させる: `yaw_joint`, `pitch_joint`, `roll_joint`, `right_front_wheel_joint`, `left_front_wheel_joint`, `right_back_wheel_joint`, `left_back_wheel_joint`, `right_front_leg_joint`, `left_front_leg_joint`, `right_back_leg_joint`, `left_back_leg_joint`。
 - リンク構成: `base_link` → 脚 4（`*_leg_link`、`revolute`、取り付け位置は方位角 FR −45° / FL 45° / BR −135° / BL 135°、半径 `BODY_D / 2 = 0.14 m`、回転軸は半径方向に直交する水平軸、範囲 0〜1.6 rad。角度 0 が最下点で、角度が増えると車体が上がる向き）→ 各脚の先に車輪（`continuous`、直径 0.06 m）。
 - 車輪の関節は **車輪リンクの z 軸を回転軸**にし、**z 軸正が機体の外側**を向くように置く（ユーザー指定。モータの出力軸が外を向く取り付け）。`OmniDrive` の出力の符号と `wheel_sign` の意味はこの軸の向きに対して定義される。`base_link` → `yaw_link`（`continuous`）→ `pitch_link`（`revolute`、−π/12〜π/6）→ `roll_link`（`revolute`、±π/6）→ `camera_link`（固定。IMU とカメラの位置）。
 - 寸法は仮（箱と円筒。胴体 0.28 m 角、脚の腕 0.10 m）。CAD を見られる帰宅後にメッシュと寸法を差し替える。軸の向きは上記の規約で固定し、寸法だけが仮であることを README と xacro のコメントに書く。rviz では `base_link` が固定なので、車高を上げると車輪が下に伸びて見える（床は描かない）。
