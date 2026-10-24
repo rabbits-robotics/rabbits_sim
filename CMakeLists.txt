@@ -20,6 +20,7 @@ include_directories(include)
 add_library(rabbits_sim_lib STATIC
   src/pty_link.cpp
   src/fake_firmware.cpp
+  src/gamma_model.cpp
 )
 ament_target_dependencies(rabbits_sim_lib rabcl)
 
@@ -36,6 +37,9 @@ if(BUILD_TESTING)
 
   ament_add_gtest(test_fake_firmware test/test_fake_firmware.cpp)
   target_link_libraries(test_fake_firmware rabbits_sim_lib)
+
+  ament_add_gtest(test_gamma_model test/test_gamma_model.cpp)
+  target_link_libraries(test_gamma_model rabbits_sim_lib)
 endif()
 
 ament_package()
