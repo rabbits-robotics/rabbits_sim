@@ -17,6 +17,11 @@ find_package(rabcl REQUIRED)
 
 include_directories(include)
 
+add_library(rabbits_sim_lib STATIC
+  src/pty_link.cpp
+)
+ament_target_dependencies(rabbits_sim_lib rabcl)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   set(ament_cmake_copyright_FOUND TRUE)
@@ -24,6 +29,9 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 
   find_package(ament_cmake_gtest REQUIRED)
+
+  ament_add_gtest(test_pty_link test/test_pty_link.cpp)
+  target_link_libraries(test_pty_link rabbits_sim_lib util)
 endif()
 
 ament_package()
