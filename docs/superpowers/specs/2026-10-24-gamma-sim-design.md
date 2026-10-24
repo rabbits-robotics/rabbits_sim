@@ -158,11 +158,11 @@ ROS 2 パッケージ（ament_cmake、launch と設定だけ。C++ なし）。e
 - モータは指令に即応答する（ダイナミクスなし）。脚のランプ（`LegDamper`）だけが時間変化を作る。実機のかたさ・遅れは見ない前提。
 - 首 Pitch / Roll は既定 0 固定（ファームに忠実）。`follow_neck_pitch_roll` で reference の確認もできるようにする。
 - DM のイネーブル待ちと脚のトリップは再現しない。`error_flags` は bit4（IMU 無効）と bit5（途絶）だけ。
-- `firmware_id` は `"gamma-sm"`（8 文字）。bridge のログで実機と区別できる。
+- `firmware_id` は `"gammasm"`（7 文字。`Info.firmware_id[8]` を末尾 0 埋めにするため 8 文字は不可）。bridge のログで実機と区別できる。
 - 偽ファームの更新と送信は 100 Hz（ファームの `Comm` の送信周期と同じ。CAN の 250 / 500 Hz は再現しない）。
 - pty のリンクは `/tmp/gamma_fake`。bridge は 1 秒遅れで起動。pty の master はノンブロッキングにし、bridge が slave を開く前の書き込みは捨て、bridge を再起動しても偽ファームは生き続ける（偽ファーム側を再起動したら launch 全体を再起動する運用）。
 - 偽ファームの定数は params ファイルのみで渡す（ノードに `config` パラメータは持たない）。未設定ならエラーで終了。
-- 脚の初期角は `angle_min`。時刻は `std::chrono::steady_clock`、`dt` はファームと同じ 0.05 s で上限クランプ。`JOINT_STATE` の `velocity` は車輪だけ角速度、脚と首は 0。
+- 脚の初期角は `angle_min`。時刻は `std::chrono::steady_clock`、`dt` はファームと同じ 0.05 s で上限クランプ。`JOINT_STATE` の `velocity` は車輪が角速度、脚はランプの差分速度、首は 0。
 - gamma の定数は YAML に二重に持つ（rabcl に機体の値を書かないため）。ファームの `robot.hpp` と対で更新する旨を両方の README に書く。
 - 偽ファームは機体ごとに `RobotModel` を実装する（gamma 専用の分岐を共通部に入れない）。
 - URDF の寸法は仮。脚は「腕が回って車輪を上下させる」単純なリンクで表し、平行リンクの幾何は CAD 確認後に反映（ファームの `BodyPosture` の幾何反映と同時）。

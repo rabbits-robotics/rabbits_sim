@@ -144,6 +144,34 @@ TEST_F(FakeFirmwareTest, FirstTickAlsoEmitsInfoAndSystem)
   }
 }
 
+// 8 文字以上の firmware_id は 7 文字に切って必ず NUL 終端する（protocol: ASCII、末尾 0 埋め）
+class LongIdModel : public RecordingModel
+{
+public:
+  const char * firmware_id() const override {return "abcdefghij";}
+};
+
+TEST(FakeFirmwareId, LongFirmwareIdIsTruncatedAndNulTerminated)
+{
+  LongIdModel model;
+  FakeFirmware fw(model);
+  uint8_t buf[proto::MAX_FRAME * 4];
+  const size_t n = fw.Tick(0.0, buf, sizeof(buf));
+  const Frames frames = ParseFrames(buf, n);
+  bool found = false;
+  for (const auto & f : frames) {
+    if (f.first != proto::Type::INFO) {
+      continue;
+    }
+    proto::Info info = {};
+    ASSERT_TRUE(proto::DecodeInfo(f.second.data(), static_cast<uint8_t>(f.second.size()), info));
+    EXPECT_EQ(info.firmware_id[7], '\0');
+    EXPECT_STREQ(info.firmware_id, "abcdefg");
+    found = true;
+  }
+  EXPECT_TRUE(found);
+}
+
 TEST_F(FakeFirmwareTest, InfoSystemOncePerSecond)
 {
   int info = 0;

@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <cstring>
 
 #include <rabcl/controller/omni_drive.hpp>
 #include <rabcl/protocol/protocol.hpp>
@@ -111,7 +112,8 @@ protected:
 TEST_F(GammaModelTest, StartsAtLowestHeightAndZeroNeck)
 {
   EXPECT_EQ(model_.joint_count(), 11);
-  EXPECT_STREQ(model_.firmware_id(), "gamma-sm");
+  EXPECT_STREQ(model_.firmware_id(), "gammasm");
+  EXPECT_LE(std::strlen(model_.firmware_id()), 7u);  // INFO の firmware_id[8] に NUL 終端で収まる
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
     EXPECT_FLOAT_EQ(Angle(id), 0.15f);
   }

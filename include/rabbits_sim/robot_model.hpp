@@ -16,7 +16,7 @@ public:
   virtual ~RobotModel() = default;
 
   virtual uint8_t joint_count() const = 0;
-  virtual const char * firmware_id() const = 0;  // 8 文字以内（INFO の firmware_id）
+  virtual const char * firmware_id() const = 0;  // 7 文字以内（INFO の firmware_id は 8 B で末尾 0 埋め）
 
   // 下りの指令（FakeFirmware が復号して渡す）
   virtual void SetChassisVel(const rabcl::protocol::ChassisVel & vel) = 0;

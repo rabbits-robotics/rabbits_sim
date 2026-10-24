@@ -92,7 +92,9 @@ size_t FakeFirmware::Tick(double now_s, uint8_t * out, size_t cap)
     proto::Info info = {};
     info.protocol_version = proto::VERSION;
     info.joint_count = count;
-    std::strncpy(info.firmware_id, model_.firmware_id(), sizeof(info.firmware_id));
+    // 末尾 0 埋め（protocol の約束）。8 文字以上は 7 文字に切る
+    std::strncpy(info.firmware_id, model_.firmware_id(), sizeof(info.firmware_id) - 1);
+    info.firmware_id[sizeof(info.firmware_id) - 1] = '\0';
     total += proto::EncodeInfo(info, out + total, cap - total);
 
     proto::System system = {};

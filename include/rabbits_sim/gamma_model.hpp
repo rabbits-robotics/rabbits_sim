@@ -67,7 +67,7 @@ public:
   explicit GammaModel(const GammaConfig & config);
 
   uint8_t joint_count() const override {return JOINT_COUNT;}
-  const char * firmware_id() const override {return "gamma-sm";}
+  const char * firmware_id() const override {return "gammasm";}  // 7 文字（INFO は 8 B、末尾 0 埋め）
   void SetChassisVel(const rabcl::protocol::ChassisVel & vel) override;
   void SetBodyPose(const rabcl::protocol::BodyPose & pose) override;
   void SetJointCmd(const rabcl::protocol::JointCmd & cmd) override;
