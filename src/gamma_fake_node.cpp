@@ -71,17 +71,48 @@ private:
     return false;
   }
 
+  // [x, z] の 2 要素パラメータ
+  bool RequirePair(const std::string & name, float & x, float & z)
+  {
+    std::vector<double> v;
+    if (!Require(name, v)) {
+      return false;
+    }
+    if (v.size() != 2) {
+      RCLCPP_ERROR(this->get_logger(), "parameter '%s' must have 2 values [x, z]", name.c_str());
+      return false;
+    }
+    x = static_cast<float>(v[0]);
+    z = static_cast<float>(v[1]);
+    return true;
+  }
+
   bool LoadConfig(GammaConfig & c)
   {
     double v = 0.0;
     std::vector<double> azimuth;
     bool ok = true;
-    ok = Require("leg.angle_min", v) && ok;
-    c.leg_angle_min = static_cast<float>(v);
-    ok = Require("leg.angle_max", v) && ok;
-    c.leg_angle_max = static_cast<float>(v);
-    ok = Require("leg.tilt_gain", v) && ok;
-    c.leg_tilt_gain = static_cast<float>(v);
+    // 脚リンクの寸法（rabbits_description の config/gamma_linkage.yaml を launch で渡す）
+    rabcl::LegLinkageConfig & l = c.posture.linkage;
+    ok = Require("linkage.crank_length", v) && ok;
+    l.crank_length = static_cast<float>(v);
+    ok = Require("linkage.crank_angle_zero", v) && ok;
+    l.crank_angle_zero = static_cast<float>(v);
+    ok = Require("linkage.coupler_length", v) && ok;
+    l.coupler_length = static_cast<float>(v);
+    ok = Require("linkage.bar_length", v) && ok;
+    l.bar_length = static_cast<float>(v);
+    ok = RequirePair("linkage.bar_pivot", l.bar_pivot_x, l.bar_pivot_z) && ok;
+    ok = RequirePair("linkage.coupler_pin", l.coupler_pin_x, l.coupler_pin_z) && ok;
+    ok = RequirePair("linkage.wheel", l.wheel_x, l.wheel_z) && ok;
+    ok = Require("linkage.theta_max", v) && ok;
+    l.theta_max = static_cast<float>(v);
+    ok = Require("linkage.drop_min", v) && ok;
+    c.posture.drop_min = static_cast<float>(v);
+    ok = Require("linkage.drop_max", v) && ok;
+    c.posture.drop_max = static_cast<float>(v);
+    ok = Require("linkage.tilt_radius", v) && ok;
+    c.posture.tilt_radius = static_cast<float>(v);
     ok = Require("leg.azimuth", azimuth) && ok;
     if (azimuth.size() != 4) {
       RCLCPP_ERROR(
@@ -89,7 +120,7 @@ private:
       ok = false;
     } else {
       for (size_t i = 0; i < 4; ++i) {
-        c.leg_azimuth[i] = static_cast<float>(azimuth[i]);
+        c.posture.leg_azimuth[i] = static_cast<float>(azimuth[i]);
       }
     }
     ok = Require("leg.ramp_rate", v) && ok;

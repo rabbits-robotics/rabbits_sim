@@ -20,10 +20,7 @@ namespace rabbits_sim
 
 struct GammaConfig
 {
-  float leg_angle_min;      // [rad] 脚の使用範囲（0 側が最低車高）
-  float leg_angle_max;
-  float leg_tilt_gain;      // [rad/rad]
-  float leg_azimuth[4];     // [rad] FR, FL, BR, BL
+  rabcl::BodyPostureConfig posture;  // 脚リンクの寸法と車高の範囲（rabbits_description の config/gamma_linkage.yaml）
   float leg_ramp_rate;      // [rad/s]
   double wheel_d;           // [m]
   double body_d;            // [m]

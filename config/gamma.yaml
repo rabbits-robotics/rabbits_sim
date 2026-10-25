@@ -4,15 +4,13 @@ gamma_fake_node:
   ros__parameters:
     link_path: /tmp/gamma_fake   # robot_bridge の device に渡すシンボリックリンク
     tick_hz: 100
+    # 脚リンクの寸法と車高の範囲（linkage.*）は rabbits_description の config/gamma_linkage.yaml を launch で一緒に渡す
     leg:
-      angle_min: 0.15            # [rad] LEG_ANGLE_MIN（0 側が最低車高）
-      angle_max: 1.45            # [rad] LEG_ANGLE_MAX
-      tilt_gain: 1.0             # [rad/rad] LEG_TILT_GAIN
       azimuth: [-0.7854, 0.7854, -2.3562, 2.3562]   # [rad] LEG_AZIMUTH: FR, FL, BR, BL
       ramp_rate: 0.5             # [rad/s] LEG_RAMP_RATE
     wheel:
-      wheel_d: 0.06              # [m] WHEEL_D
-      body_d: 0.28               # [m] BODY_D
+      wheel_d: 0.075             # [m] WHEEL_D（φ75）
+      body_d: 0.34               # [m] BODY_D（車輪の接地点の配置径 = 2 × tilt_radius、中間の車高）
       sign: -1.0                 # WHEEL_SIGN
     chassis:
       vel_max: 1.0               # [m/s] CHASSIS_VEL_MAX

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstring>
 
+#include <rabcl/controller/leg_linkage.hpp>
 #include <rabcl/controller/omni_drive.hpp>
 #include <rabcl/protocol/protocol.hpp>
 #include <rabcl/utils/utils.hpp>
@@ -28,19 +29,27 @@ constexpr float PI = static_cast<float>(M_PI);
 constexpr uint32_t FLAG_IMU_INVALID = 1u << 4;
 constexpr uint32_t FLAG_CMD_LOST = 1u << 5;
 
+// gamma の寸法（rabbits_description config/gamma_linkage.yaml と同じ）
+constexpr rabcl::LegLinkageConfig LINKAGE = {
+  0.041f, 1.0471976f, 0.03975f, 0.060f, -0.026f, -0.049f, 0.0f, 0.0175f, 0.044f, -0.0325f,
+  1.5707963f};
+constexpr float DROP_MIN = 0.05756f;  // θ 0.15 rad
+constexpr float DROP_MAX = 0.10377f;  // θ 1.42 rad
+
 GammaConfig TestConfig()
 {
   GammaConfig c = {};
-  c.leg_angle_min = 0.15f;
-  c.leg_angle_max = 1.45f;
-  c.leg_tilt_gain = std::sqrt(2.0f);  // rabcl の test_body_posture と同じ値（0.707 × √2 = 1）
-  c.leg_azimuth[0] = -PI / 4.0f;
-  c.leg_azimuth[1] = PI / 4.0f;
-  c.leg_azimuth[2] = -3.0f * PI / 4.0f;
-  c.leg_azimuth[3] = 3.0f * PI / 4.0f;
+  c.posture.linkage = LINKAGE;
+  c.posture.drop_min = DROP_MIN;
+  c.posture.drop_max = DROP_MAX;
+  c.posture.tilt_radius = 0.170f;
+  c.posture.leg_azimuth[0] = -PI / 4.0f;
+  c.posture.leg_azimuth[1] = PI / 4.0f;
+  c.posture.leg_azimuth[2] = -3.0f * PI / 4.0f;
+  c.posture.leg_azimuth[3] = 3.0f * PI / 4.0f;
   c.leg_ramp_rate = 0.5f;
-  c.wheel_d = 0.06;
-  c.body_d = 0.28;
+  c.wheel_d = 0.075;
+  c.body_d = 0.34;
   c.wheel_sign = -1.0f;
   c.chassis_vel_max = 1.0f;
   c.chassis_rot_max = 3.0f;
@@ -98,6 +107,14 @@ protected:
     }
   }
   float Angle(uint8_t id) const {return model_.joint_angle(id);}
+  // 脚のモータ角を車輪の下がり [m] に戻す
+  float Drop(uint8_t id) const
+  {
+    rabcl::LegLinkage link(LINKAGE);
+    rabcl::LegPose p;
+    EXPECT_TRUE(link.Forward(Angle(id), p));
+    return p.wheel_drop;
+  }
   float Velocity(uint8_t id) const
   {
     proto::JointState js[11];
@@ -115,7 +132,7 @@ TEST_F(GammaModelTest, StartsAtLowestHeightAndZeroNeck)
   EXPECT_STREQ(model_.firmware_id(), "gammasm");
   EXPECT_LE(std::strlen(model_.firmware_id()), 7u);  // INFO の firmware_id[8] に NUL 終端で収まる
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
-    EXPECT_FLOAT_EQ(Angle(id), 0.15f);
+    EXPECT_FLOAT_EQ(Angle(id), 0.0f);  // モータ原点（メカスト）= 実機と同じ
   }
   for (uint8_t id = YAW; id <= WHEEL_BL; ++id) {
     EXPECT_FLOAT_EQ(Angle(id), 0.0f);
@@ -123,31 +140,47 @@ TEST_F(GammaModelTest, StartsAtLowestHeightAndZeroNeck)
   proto::JointState js[11];
   model_.GetJointStates(js);
   EXPECT_EQ(js[10].id, 10);
-  EXPECT_FLOAT_EQ(js[10].position, 0.15f);
+  EXPECT_FLOAT_EQ(js[10].position, 0.0f);
+}
+
+TEST_F(GammaModelTest, StartsAtLowestHeightAndRampsToBodyPostureTarget)
+{
+  Step(0.1);  // BODY_POSE 無しでは動かない
+  EXPECT_FLOAT_EQ(Angle(LEG_FR), 0.0f);
+  SendBodyPose(0.0f, 0.0f, 0.0f);  // 車高 0 = θ 0.15 へ ramp_rate 0.5 rad/s で
+  StepAlive(0.1);
+  EXPECT_NEAR(Angle(LEG_FR), 0.05f, 1e-3f);
+  StepAlive(1.0);
+  EXPECT_NEAR(Angle(LEG_FR), 0.15f, 1e-3f);
 }
 
 TEST_F(GammaModelTest, BodyHeightRampsToBodyPostureTarget)
 {
-  SendBodyPose(0.5f, 0.0f, 0.0f);
+  SendBodyPose(1.0f, 0.0f, 0.0f);
   StepAlive(0.5);
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
-    EXPECT_GT(Angle(id), 0.15f);
-    EXPECT_LT(Angle(id), 0.8f);
+    EXPECT_GT(Angle(id), 0.0f);
+    EXPECT_LT(Angle(id), 1.42f);
   }
-  StepAlive(1.5);
+  StepAlive(3.0);
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
-    EXPECT_NEAR(Angle(id), 0.80f, 1e-3f);
+    EXPECT_NEAR(Angle(id), 1.42f, 1e-3f);
+  }
+  SendBodyPose(0.0f, 0.0f, 0.0f);
+  StepAlive(3.0);
+  for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
+    EXPECT_NEAR(Angle(id), 0.15f, 1e-3f);
   }
 }
 
 TEST_F(GammaModelTest, RollPositiveLowersRightLegs)
 {
   SendBodyPose(0.5f, 0.1f, 0.0f);
-  StepAlive(2.0);
-  EXPECT_NEAR(Angle(LEG_FR), 0.70f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_FL), 0.90f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_BR), 0.70f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_BL), 0.90f, 1e-3f);
+  StepAlive(3.0);
+  EXPECT_NEAR(Drop(LEG_FR), 0.068644f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FL), 0.092686f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BR), 0.068644f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BL), 0.092686f, 1e-4f);
 }
 
 TEST_F(GammaModelTest, PitchIsCameraFrameWhenYawIs90deg)
@@ -155,19 +188,19 @@ TEST_F(GammaModelTest, PitchIsCameraFrameWhenYawIs90deg)
   SendJointCmd(YAW, PI / 2.0f);
   StepAlive(0.1);
   ASSERT_NEAR(Angle(YAW), PI / 2.0f, 1e-5f);
-  SendBodyPose(0.5f, 0.0f, 0.2f);  // カメラの前下がり = 車体の左下がり
+  SendBodyPose(0.5f, 0.0f, 0.1f);  // カメラの前下がり = 車体の左下がり
   StepAlive(3.0);
-  EXPECT_NEAR(Angle(LEG_FR), 1.00f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_FL), 0.60f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_BR), 1.00f, 1e-3f);
-  EXPECT_NEAR(Angle(LEG_BL), 0.60f, 1e-3f);
+  EXPECT_NEAR(Drop(LEG_FR), 0.092686f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FL), 0.068644f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BR), 0.092686f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BL), 0.068644f, 1e-4f);
 }
 
 TEST_F(GammaModelTest, ForwardVelocitySpinsWheels)
 {
   SendChassisVel(0.5f, 0.0f, 0.0f);
   StepAlive(1.0);
-  rabcl::OmniDrive omni(0.06, 0.28);
+  rabcl::OmniDrive omni(0.075, 0.34);  // TestConfig と同じ
   double w[4];
   omni.CalcVel(0.5, 0.0, 0.0, w[0], w[1], w[2], w[3], 0.0);
   for (uint8_t i = 0; i < 4; ++i) {
@@ -218,13 +251,13 @@ TEST_F(GammaModelTest, LossKeepsRampingToLastPoseAndResumes)
   Step(3.0);  // 途絶中も最後の BODY_POSE へ進み切る
   EXPECT_TRUE(model_.command_lost());
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
-    EXPECT_NEAR(Angle(id), 1.45f, 1e-3f);
+    EXPECT_NEAR(Angle(id), 1.42f, 1e-3f);
   }
   SendBodyPose(0.0f, 0.0f, 0.0f);
   StepAlive(0.1);
   EXPECT_FALSE(model_.command_lost());
   for (uint8_t id = LEG_FR; id <= LEG_BL; ++id) {
-    EXPECT_LT(Angle(id), 1.45f);
+    EXPECT_LT(Angle(id), 1.42f);
   }
 }
 
@@ -287,7 +320,7 @@ TEST_F(GammaModelTest, JointCmdForNonNeckIsIgnored)
 {
   SendJointCmd(LEG_FR, 1.0f);
   StepAlive(0.5);
-  EXPECT_FLOAT_EQ(Angle(LEG_FR), 0.15f);
+  EXPECT_FLOAT_EQ(Angle(LEG_FR), 0.0f);
 }
 
 }  // namespace rabbits_sim

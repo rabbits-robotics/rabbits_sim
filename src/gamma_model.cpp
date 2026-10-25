@@ -13,7 +13,7 @@ namespace
 rabcl::LegDamperConfig LegConfig(const GammaConfig & c)
 {
   // kp / kd / tff はモータの話なので偽ファームでは使わない。ランプだけ
-  return {0.0f, 0.0f, 0.0f, 0.0f, 0.0f, c.leg_ramp_rate};
+  return {0.0f, 0.0f, 0.0f, 0.0f, c.leg_ramp_rate};
 }
 
 }  // namespace
@@ -21,16 +21,14 @@ rabcl::LegDamperConfig LegConfig(const GammaConfig & c)
 GammaModel::GammaModel(const GammaConfig & config)
 : config_(config),
   omni_(config.wheel_d, config.body_d),
-  posture_(rabcl::BodyPostureConfig{
-    config.leg_angle_min, config.leg_angle_max, config.leg_tilt_gain,
-    {config.leg_azimuth[0], config.leg_azimuth[1], config.leg_azimuth[2], config.leg_azimuth[3]}}),
+  posture_(config.posture),
   legs_{rabcl::LegDamper(LegConfig(config)), rabcl::LegDamper(LegConfig(config)),
     rabcl::LegDamper(LegConfig(config)), rabcl::LegDamper(LegConfig(config))},
   watchdog_(config.watchdog_s)
 {
   for (size_t i = 0; i < 4; ++i) {
-    legs_[i].Reset(config_.leg_angle_min);  // 原点 = 最低車高から始まる
-    angle_[LEG_FR + i] = config_.leg_angle_min;
+    legs_[i].Reset(0.0f);  // モータ原点（メカスト = 最低車高）から始まる。実機の電源投入と同じ
+    angle_[LEG_FR + i] = 0.0f;
   }
 }
 
@@ -114,7 +112,7 @@ void GammaModel::Update(double now_s, double dt_in)
   }
   for (size_t i = 0; i < 4; ++i) {
     const float before = angle_[LEG_FR + i];
-    angle_[LEG_FR + i] = legs_[i].Update(target[i], before, 0.0f, dt).pos;
+    angle_[LEG_FR + i] = legs_[i].Update(target[i], before, 0.0f, dt, 0.0f).pos;  // 荷重分は無し
     velocity_[LEG_FR + i] = dt > 0.0f ? (angle_[LEG_FR + i] - before) / dt : 0.0f;
   }
 

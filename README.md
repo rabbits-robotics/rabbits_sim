@@ -32,7 +32,7 @@
 | `config/gamma.yaml` | gamma の定数。**gamma_turret_fw の `src/robot.hpp` と対で更新する** |
 | `launch/gamma_fake.launch.py` | 偽ファームだけを起動（単体確認用） |
 
-挙動（ファームと同じにしてある）: 途絶 0.5 s で車輪 0・無限回転解除、脚は最後の `BODY_POSE` へランプを進め切る、首 Yaw は最後の目標を保持。首 Yaw が胴体の回転を打ち消す（視点を世界に保つ）のは無限回転中だけで、普通の旋回では首は胴体と一緒に回る。`error_flags` は IMU 無効（bit4、常時）と途絶（bit5）。首 Pitch / Roll はファームが機構決定まで送らないので 0（`follow_neck_pitch_roll: true` で `JOINT_CMD` に追従させて reference の確認ができる）。`firmware_id` は `gammasm`（7 文字。実機は `gamma`）。
+挙動（ファームと同じにしてある）: 脚は 4 節リンクの運動学（rabcl `LegLinkage` + `BodyPosture`。車高 0〜1 → 車輪の下がり → モータ角）で、起動時はモータ原点 θ = 0（メカスト、車高 0 より少し低い）から最初の `BODY_POSE` へランプで上がる。寸法は rabbits_description の `config/gamma_linkage.yaml` を launch で `linkage.*` パラメータとして渡す。途絶 0.5 s で車輪 0・無限回転解除、脚は最後の `BODY_POSE` へランプを進め切る、首 Yaw は最後の目標を保持。首 Yaw が胴体の回転を打ち消す（視点を世界に保つ）のは無限回転中だけで、普通の旋回では首は胴体と一緒に回る。`error_flags` は IMU 無効（bit4、常時）と途絶（bit5）。首 Pitch / Roll はファームが機構決定まで送らないので 0（`follow_neck_pitch_roll: true` で `JOINT_CMD` に追従させて reference の確認ができる）。`firmware_id` は `gammasm`（7 文字。実機は `gamma`）。
 
 ## 使い方
 
