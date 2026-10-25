@@ -31,10 +31,10 @@ constexpr uint32_t FLAG_CMD_LOST = 1u << 5;
 
 // gamma の寸法（rabbits_description config/gamma_linkage.yaml と同じ）
 constexpr rabcl::LegLinkageConfig LINKAGE = {
-  0.041f, 1.0471976f, 0.03975f, 0.060f, -0.026f, -0.049f, 0.0f, 0.0175f, 0.044f, -0.0325f,
+  0.041f, 1.0471976f, 0.03975f, 0.060f, -0.026f, -0.049f, 0.0f, 0.0175f, 0.0383f, -0.044f,
   1.5707963f};
-constexpr float DROP_MIN = 0.05756f;  // θ 0.15 rad
-constexpr float DROP_MAX = 0.10377f;  // θ 1.42 rad
+constexpr float DROP_MIN = 0.06906f;  // θ 0.15 rad
+constexpr float DROP_MAX = 0.11527f;  // θ 1.42 rad
 
 GammaConfig TestConfig()
 {
@@ -42,14 +42,14 @@ GammaConfig TestConfig()
   c.posture.linkage = LINKAGE;
   c.posture.drop_min = DROP_MIN;
   c.posture.drop_max = DROP_MAX;
-  c.posture.tilt_radius = 0.170f;
+  c.posture.tilt_radius = 0.164f;
   c.posture.leg_azimuth[0] = -PI / 4.0f;
   c.posture.leg_azimuth[1] = PI / 4.0f;
   c.posture.leg_azimuth[2] = -3.0f * PI / 4.0f;
   c.posture.leg_azimuth[3] = 3.0f * PI / 4.0f;
   c.leg_ramp_rate = 0.5f;
   c.wheel_d = 0.075;
-  c.body_d = 0.34;
+  c.body_d = 0.328;
   c.wheel_sign = -1.0f;
   c.chassis_vel_max = 1.0f;
   c.chassis_rot_max = 3.0f;
@@ -177,10 +177,10 @@ TEST_F(GammaModelTest, RollPositiveLowersRightLegs)
 {
   SendBodyPose(0.5f, 0.1f, 0.0f);
   StepAlive(3.0);
-  EXPECT_NEAR(Drop(LEG_FR), 0.068644f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_FL), 0.092686f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_BR), 0.068644f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_BL), 0.092686f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FR), 0.080566f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FL), 0.103760f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BR), 0.080566f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BL), 0.103760f, 1e-4f);
 }
 
 TEST_F(GammaModelTest, PitchIsCameraFrameWhenYawIs90deg)
@@ -190,17 +190,17 @@ TEST_F(GammaModelTest, PitchIsCameraFrameWhenYawIs90deg)
   ASSERT_NEAR(Angle(YAW), PI / 2.0f, 1e-5f);
   SendBodyPose(0.5f, 0.0f, 0.1f);  // カメラの前下がり = 車体の左下がり
   StepAlive(3.0);
-  EXPECT_NEAR(Drop(LEG_FR), 0.092686f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_FL), 0.068644f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_BR), 0.092686f, 1e-4f);
-  EXPECT_NEAR(Drop(LEG_BL), 0.068644f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FR), 0.103760f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_FL), 0.080566f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BR), 0.103760f, 1e-4f);
+  EXPECT_NEAR(Drop(LEG_BL), 0.080566f, 1e-4f);
 }
 
 TEST_F(GammaModelTest, ForwardVelocitySpinsWheels)
 {
   SendChassisVel(0.5f, 0.0f, 0.0f);
   StepAlive(1.0);
-  rabcl::OmniDrive omni(0.075, 0.34);  // TestConfig と同じ
+  rabcl::OmniDrive omni(0.075, 0.328);  // TestConfig と同じ
   double w[4];
   omni.CalcVel(0.5, 0.0, 0.0, w[0], w[1], w[2], w[3], 0.0);
   for (uint8_t i = 0; i < 4; ++i) {
