@@ -118,7 +118,9 @@ void GammaModel::Update(double now_s, double dt_in)
     velocity_[LEG_FR + i] = dt > 0.0f ? (angle_[LEG_FR + i] - before) / dt : 0.0f;
   }
 
-  // 首 Yaw: 胴体の向き（IMU 無しなので旋回速度の積分）を引いた視点目標
+  // 首 Yaw: 無限回転中だけ胴体の向き（IMU 無しなので旋回速度の積分）を追って打ち消す。
+  // 普通の旋回（L2 / R2）では据え置き = 首は胴体と一緒に回る（ファームと同じ）
+  attitude_.SetYawTracking(infinite_rotation_);
   attitude_.UpdateFromChassisRate(wz, dt);
   const rabcl::Attitude body = attitude_.Get();
   if (yaw_cmd_present_) {

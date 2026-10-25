@@ -243,6 +243,28 @@ TEST_F(GammaModelTest, YawCountersBodyRotation)
   EXPECT_NEAR(Angle(YAW), -0.5f, 1e-3f);
 }
 
+TEST_F(GammaModelTest, YawTurnsWithBodyOnNormalRotation)
+{
+  SendJointCmd(YAW, 0.3f);
+  SendChassisVel(0.0f, 0.0f, 1.0f);  // L2 / R2 の旋回: 胴体は回るが首は胴体基準の目標のまま
+  StepAlive(0.5);
+  EXPECT_NEAR(Angle(YAW), 0.3f, 1e-5f);
+}
+
+TEST_F(GammaModelTest, YawCountersOnlyInfiniteRotationPart)
+{
+  SendJointCmd(YAW, 0.0f);
+  SendChassisVel(0.0f, 0.0f, 1.0f);
+  StepAlive(0.5);  // 普通の旋回: 首は 0 のまま
+  EXPECT_NEAR(Angle(YAW), 0.0f, 1e-5f);
+  SendMode(MODE_CHASSIS, 1);
+  StepAlive(0.1);  // 無限回転中は (spin_speed + 1.0) × 0.1 だけ逆回り
+  EXPECT_NEAR(Angle(YAW), -0.6f, 1e-3f);
+  SendMode(MODE_CHASSIS, 0);
+  StepAlive(0.5);  // 抜けたら据え置き
+  EXPECT_NEAR(Angle(YAW), -0.6f, 1e-3f);
+}
+
 TEST_F(GammaModelTest, NeckPitchRollHoldZeroByDefault)
 {
   SendJointCmd(PITCH, 0.3f);
