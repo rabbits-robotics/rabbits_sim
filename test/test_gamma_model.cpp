@@ -323,6 +323,74 @@ TEST_F(GammaModelTest, JointCmdForNonNeckIsIgnored)
   EXPECT_FLOAT_EQ(Angle(LEG_FR), 0.0f);
 }
 
+TEST_F(GammaModelTest, MotorCommandsExcludeLegsAndYawBeforeCommands)
+{
+  Step(DT);
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+  const uint8_t n = model_.GetMotorCommands(cmds);
+  for (uint8_t i = 0; i < n; ++i) {
+    EXPECT_GE(cmds[i].id, WHEEL_FR);  // 脚は BODY_POSE 未受信、Yaw は JOINT_CMD 未受信なので入らない
+    EXPECT_LE(cmds[i].id, WHEEL_BL);
+  }
+  EXPECT_EQ(n, 4);  // 車輪 4 つだけ
+}
+
+TEST_F(GammaModelTest, MotorCommandsCarryRampedLegTarget)
+{
+  SendBodyPose(1.0f, 0.0f, 0.0f);
+  StepAlive(DT);  // ランプの 1 ステップ
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+  const uint8_t n = model_.GetMotorCommands(cmds);
+  bool found = false;
+  for (uint8_t i = 0; i < n; ++i) {
+    if (cmds[i].id == LEG_FR) {
+      found = true;
+      // 偽ファームのモータは即応答 = ランプ後の目標と関節角が同じ
+      EXPECT_FLOAT_EQ(cmds[i].position, Angle(LEG_FR));
+      EXPECT_GT(cmds[i].position, 0.0f);
+      EXPECT_FLOAT_EQ(cmds[i].velocity, 0.0f);
+      EXPECT_FLOAT_EQ(cmds[i].effort, 0.0f);
+    }
+  }
+  EXPECT_TRUE(found);
+  EXPECT_EQ(n, 8);  // 車輪 4 + 脚 4
+}
+
+TEST_F(GammaModelTest, MotorCommandsCarryWheelVelocity)
+{
+  SendChassisVel(0.5f, 0.0f, 0.0f);
+  StepAlive(DT);
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+  const uint8_t n = model_.GetMotorCommands(cmds);
+  bool found = false;
+  for (uint8_t i = 0; i < n; ++i) {
+    if (cmds[i].id == WHEEL_FR) {
+      found = true;
+      EXPECT_FLOAT_EQ(cmds[i].position, 0.0f);
+      EXPECT_FLOAT_EQ(cmds[i].velocity, Velocity(WHEEL_FR));
+      EXPECT_NE(cmds[i].velocity, 0.0f);
+    }
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(GammaModelTest, MotorCommandsCarryYawAfterJointCmd)
+{
+  SendJointCmd(YAW, 0.4f);
+  StepAlive(DT);
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+  const uint8_t n = model_.GetMotorCommands(cmds);
+  bool found = false;
+  for (uint8_t i = 0; i < n; ++i) {
+    if (cmds[i].id == YAW) {
+      found = true;
+      EXPECT_FLOAT_EQ(cmds[i].position, 0.4f);
+    }
+    EXPECT_NE(cmds[i].id, PITCH);  // follow_neck_pitch_roll が false なら Pitch / Roll は入らない
+  }
+  EXPECT_TRUE(found);
+}
+
 }  // namespace rabbits_sim
 
 int main(int argc, char ** argv)

@@ -119,7 +119,7 @@ private:
       firmware_->Feed(rx, static_cast<size_t>(n), now);
     }
     model_->Update(now, dt);
-    uint8_t tx[rabcl::protocol::MAX_FRAME * 3];
+    uint8_t tx[rabcl::protocol::MAX_FRAME * 4];  // JOINT_STATE, MOTOR_COMMAND, INFO, SYSTEM
     const size_t len = firmware_->Tick(now, tx, sizeof(tx));
     link_.Write(tx, len);
 

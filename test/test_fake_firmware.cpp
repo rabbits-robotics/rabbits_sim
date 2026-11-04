@@ -46,6 +46,13 @@ public:
       out[i].position = 0.1f * static_cast<float>(i + 1);
     }
   }
+  // id 0 と 2 だけ指令あり
+  uint8_t GetMotorCommands(proto::MotorCommand * out) const override
+  {
+    out[0] = {0, 0.1f, 0.0f, 0.0f};
+    out[1] = {2, 0.3f, 0.0f, 0.0f};
+    return 2;
+  }
   uint32_t error_flags() const override {return 0x20;}
 
   proto::ChassisVel chassis_vel = {};
@@ -247,6 +254,28 @@ TEST_F(FakeFirmwareTest, SplitFramesAreReassembled)
   fw_.Feed(buf + 4, n - 4, 0.2);
   EXPECT_EQ(model_.chassis_vel_count, 1);
   EXPECT_DOUBLE_EQ(model_.last_command_s, 0.2);
+}
+
+TEST_F(FakeFirmwareTest, TickEmitsMotorCommands)
+{
+  const Frames frames = Tick(0.0);
+  ASSERT_EQ(Count(frames, proto::Type::MOTOR_COMMAND), 1);
+  for (const auto & f : frames) {
+    if (f.first != proto::Type::MOTOR_COMMAND) {
+      continue;
+    }
+    proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+    uint8_t count = 0;
+    ASSERT_TRUE(
+      proto::DecodeMotorCommand(
+        f.second.data(), static_cast<uint8_t>(f.second.size()), cmds, proto::MAX_MOTOR_COMMANDS,
+        count));
+    ASSERT_EQ(count, 2);
+    EXPECT_EQ(cmds[0].id, 0);
+    EXPECT_FLOAT_EQ(cmds[0].position, 0.1f);
+    EXPECT_EQ(cmds[1].id, 2);
+    EXPECT_FLOAT_EQ(cmds[1].position, 0.3f);
+  }
 }
 
 }  // namespace rabbits_sim

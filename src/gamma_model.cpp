@@ -139,6 +139,27 @@ void GammaModel::GetJointStates(rabcl::protocol::JointState * out) const
   }
 }
 
+uint8_t GammaModel::GetMotorCommands(rabcl::protocol::MotorCommand * out) const
+{
+  uint8_t n = 0;
+  if (yaw_cmd_present_) {
+    out[n++] = {YAW, angle_[YAW], 0.0f, 0.0f};  // Gimbal の出力。モータは即応答なので関節角と同じ
+  }
+  if (config_.follow_neck_pitch_roll) {
+    out[n++] = {PITCH, neck_cmd_[PITCH], 0.0f, 0.0f};
+    out[n++] = {ROLL, neck_cmd_[ROLL], 0.0f, 0.0f};
+  }
+  for (uint8_t i = 0; i < 4; ++i) {
+    out[n++] = {static_cast<uint8_t>(WHEEL_FR + i), 0.0f, velocity_[WHEEL_FR + i], 0.0f};
+  }
+  if (body_pose_present_) {
+    for (uint8_t i = 0; i < 4; ++i) {
+      out[n++] = {static_cast<uint8_t>(LEG_FR + i), legs_[i].ramped_target(), 0.0f, 0.0f};
+    }
+  }
+  return n;
+}
+
 uint32_t GammaModel::error_flags() const
 {
   return ERROR_IMU_INVALID | (lost_ ? ERROR_CMD_LOST : 0u);

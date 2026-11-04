@@ -85,6 +85,12 @@ size_t FakeFirmware::Tick(double now_s, uint8_t * out, size_t cap)
     total += proto::EncodeJointState(joints, count, out + total, cap - total);
   }
 
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS] = {};
+  const uint8_t n_cmds = model_.GetMotorCommands(cmds);
+  if (n_cmds > 0) {
+    total += proto::EncodeMotorCommand(cmds, n_cmds, out + total, cap - total);
+  }
+
   if (!info_sent_ || now_s - last_info_s_ >= INFO_PERIOD_S) {
     info_sent_ = true;
     last_info_s_ = now_s;

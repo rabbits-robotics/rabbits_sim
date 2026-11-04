@@ -1,5 +1,5 @@
 // 偽ファームの「機体の振る舞い」の口。機体ごと（gamma、将来 beta）に実装する。
-// FakeFirmware が下りの指令を渡し、関節状態と error_flags を読む。プロトコルも pty も知らない
+// FakeFirmware が下りの指令を渡し、関節状態・モータへの指令・error_flags を読む。プロトコルも pty も知らない
 #ifndef RABBITS_SIM__ROBOT_MODEL_HPP_
 #define RABBITS_SIM__ROBOT_MODEL_HPP_
 
@@ -30,6 +30,9 @@ public:
   virtual void Update(double now_s, double dt) = 0;
   // joint_count 個を out に書く。id は 0〜joint_count-1
   virtual void GetJointStates(rabcl::protocol::JointState * out) const = 0;
+  // 直前の Update() で「モータに指令を送った」関節だけを out に書き、個数を返す（最大 MAX_MOTOR_COMMANDS）。
+  // 位置制御の関節は position（velocity 0）、速度制御（車輪）は velocity（position 0）、effort はフィードフォワード
+  virtual uint8_t GetMotorCommands(rabcl::protocol::MotorCommand * out) const = 0;
   virtual uint32_t error_flags() const = 0;
 };
 

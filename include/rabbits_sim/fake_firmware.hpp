@@ -1,6 +1,6 @@
 // 機体に依らないプロトコル処理（ファームの Comm の PC 側版）。
 //   Feed: 受けたバイト列をフレームに分け、下りの指令を RobotModel に渡す
-//   Tick: JOINT_STATE を毎回、INFO と SYSTEM を初回と 1 s ごとに書き出す
+//   Tick: JOINT_STATE と MOTOR_COMMAND（指令のある関節があれば）を毎回、INFO と SYSTEM を初回と 1 s ごとに書き出す
 // pty も ROS も知らない。テストはバイト列で行う
 #ifndef RABBITS_SIM__FAKE_FIRMWARE_HPP_
 #define RABBITS_SIM__FAKE_FIRMWARE_HPP_

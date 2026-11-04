@@ -72,6 +72,9 @@ public:
   void OnCommandReceived(double now_s) override;
   void Update(double now_s, double dt) override;
   void GetJointStates(rabcl::protocol::JointState * out) const override;
+  // 車輪は常に（velocity）、脚は BODY_POSE を受けてから（ランプ後の目標）、首 Yaw は JOINT_CMD を受けてから、
+  // Pitch / Roll は follow_neck_pitch_roll のときだけ。effort は 0
+  uint8_t GetMotorCommands(rabcl::protocol::MotorCommand * out) const override;
   uint32_t error_flags() const override;
 
   float joint_angle(uint8_t id) const;
