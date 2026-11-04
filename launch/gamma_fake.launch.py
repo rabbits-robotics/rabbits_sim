@@ -10,6 +10,8 @@ from launch_ros.actions import Node
 def generate_launch_description():
     default_config = os.path.join(
         get_package_share_directory('rabbits_sim'), 'config', 'gamma.yaml')
+    linkage_config = os.path.join(
+        get_package_share_directory('rabbits_description'), 'config', 'gamma_linkage.yaml')
 
     config_arg = DeclareLaunchArgument(
         'config', default_value=default_config,
@@ -25,6 +27,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             LaunchConfiguration('config'),
+            linkage_config,  # 脚リンクの寸法・脚の方位角（linkage.*）
             {'link_path': LaunchConfiguration('link_path')},
         ],
     )

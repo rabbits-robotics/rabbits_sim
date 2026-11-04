@@ -3,3 +3,7 @@ repositories:
     type: git
     url: https://github.com/rabbits-robotics/rabcl.git
     version: main
+  rabbits_description:
+    type: git
+    url: https://github.com/rabbits-robotics/rabbits_description.git
+    version: main

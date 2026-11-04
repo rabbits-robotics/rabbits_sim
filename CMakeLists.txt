@@ -14,6 +14,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rabcl REQUIRED)
+find_package(rabbits_description REQUIRED)
 
 include_directories(include)
 
@@ -25,7 +26,7 @@ add_library(rabbits_sim_lib STATIC
 ament_target_dependencies(rabbits_sim_lib rabcl)
 
 add_executable(gamma_fake_node src/gamma_fake_node.cpp)
-target_link_libraries(gamma_fake_node rabbits_sim_lib util)
+target_link_libraries(gamma_fake_node rabbits_sim_lib util rabbits_description::rabbits_description)
 ament_target_dependencies(gamma_fake_node rclcpp rabcl)
 
 install(TARGETS

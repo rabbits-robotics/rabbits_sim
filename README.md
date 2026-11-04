@@ -29,10 +29,10 @@
 | `include/rabbits_sim/fake_firmware.hpp`, `src/fake_firmware.cpp` | `FakeFirmware`。ファームの `Comm` の PC 側版。下りフレームを `RobotModel` に渡し、`JOINT_STATE` を毎回、`INFO` / `SYSTEM` を 1 s ごとに書き出す |
 | `include/rabbits_sim/gamma_model.hpp`, `src/gamma_model.cpp` | `GammaModel`。gamma のファーム（gamma_turret_fw の `Controller`）の変換を rabcl の同じ部品で再現: 車輪 = `OmniDrive`（首 Yaw で視点基準）+ 無限回転、脚 = `BodyPosture` → `LegDamper` のランプ、首 Yaw = `Gimbal`（視点目標 − `BodyAttitude`）。モータは即応答 |
 | `src/gamma_fake_node.cpp` | `gamma_fake_node`。3 つをつなぐ。ROS トピックは持たない |
-| `config/gamma.yaml` | gamma の定数。**gamma_turret_fw の `src/robot.hpp` と対で更新する** |
+| `config/gamma.yaml` | gamma の定数（脚のランプ、車輪、走行、途絶）。**gamma_turret_fw の `src/robot.hpp` と対で更新する**。脚リンクの寸法と脚の方位角は rabbits_description の `config/gamma_linkage.yaml`（`linkage.*`）を launch で一緒に渡す |
 | `launch/gamma_fake.launch.py` | 偽ファームだけを起動（単体確認用） |
 
-挙動（ファームと同じにしてある）: 脚は 4 節リンクの運動学（rabcl `LegLinkage` + `BodyPosture`。車高 0〜1 → 車輪の下がり → モータ角）で、起動時はモータ原点 θ = 0（メカスト、車高 0 より少し低い）から最初の `BODY_POSE` へランプで上がる。寸法は rabbits_description の `config/gamma_linkage.yaml` を launch で `linkage.*` パラメータとして渡す。途絶 0.5 s で車輪 0・無限回転解除、脚は最後の `BODY_POSE` へランプを進め切る、首 Yaw は最後の目標を保持。首 Yaw が胴体の回転を打ち消す（視点を世界に保つ）のは無限回転中だけで、普通の旋回では首は胴体と一緒に回る。`error_flags` は IMU 無効（bit4、常時）と途絶（bit5）。首 Pitch / Roll はファームが機構決定まで送らないので 0（`follow_neck_pitch_roll: true` で `JOINT_CMD` に追従させて reference の確認ができる）。`firmware_id` は `gammasm`（7 文字。実機は `gamma`）。
+挙動（ファームと同じにしてある）: 脚は 4 節リンクの運動学（rabcl `LegLinkage` + `BodyPosture`。車高 0〜1 → 車輪の下がり → モータ角）で、起動時はモータ原点 θ = 0（メカスト、車高 0 より少し低い）から最初の `BODY_POSE` へランプで上がる。寸法と脚の方位角は rabbits_description の `config/gamma_linkage.yaml` を launch で `linkage.*` パラメータとして渡す（読み込みは rabbits_description のライブラリ `LoadBodyPosture`）。途絶 0.5 s で車輪 0・無限回転解除、脚は最後の `BODY_POSE` へランプを進め切る、首 Yaw は最後の目標を保持。首 Yaw が胴体の回転を打ち消す（視点を世界に保つ）のは無限回転中だけで、普通の旋回では首は胴体と一緒に回る。`error_flags` は IMU 無効（bit4、常時）と途絶（bit5）。首 Pitch / Roll はファームが機構決定まで送らないので 0（`follow_neck_pitch_roll: true` で `JOINT_CMD` に追従させて reference の確認ができる）。`firmware_id` は `gammasm`（7 文字。実機は `gamma`）。
 
 ## 使い方
 
@@ -47,7 +47,7 @@ ros2 topic echo /joint_states --once
 
 **rviz での車輪の向きの読み方**: 車輪の角速度は `OmniDrive::CalcVel` の出力 × `wheel_sign` をそのまま積分している（ファームと同じ式）。URDF の規約（車輪の z 軸が機体の外側）に対して `OmniDrive` の並進項と回転項の符号関係が揃っていないため、現状の `wheel_sign = -1` では **前進指令で車輪が後ろに転がって見え、旋回は幾何どおりに見える**。これは偽ファームや URDF の不具合ではなく、実機で `WHEEL_SIGN` を確定したあとに rabcl の `OmniDrive` の符号（または URDF の軸向き）を揃えるタスクで解消する。それまでは「式どおりに回っているか」を見る。
 
-パラメータ（`gamma_fake_node`）: `link_path`（既定 `/tmp/gamma_fake`）、`tick_hz`（既定 100）、`leg.*` / `wheel.*` / `chassis.*` / `watchdog_s`（必須。`config/gamma.yaml` で渡す。無ければエラーで終了）、`follow_neck_pitch_roll`（既定 false）。
+パラメータ（`gamma_fake_node`）: `link_path`（既定 `/tmp/gamma_fake`）、`tick_hz`（既定 100）、`leg.ramp_rate` / `wheel.*` / `chassis.*` / `watchdog_s`（必須。`config/gamma.yaml` で渡す）、`linkage.*`（必須。rabbits_description の `config/gamma_linkage.yaml` で渡す）。無ければエラーで終了、`follow_neck_pitch_roll`（既定 false）。
 
 偽ファームを再起動したら pty が変わるので bridge も再起動する（launch 全体の再起動）。bridge だけの再起動は偽ファームを止めずにできる。
 

@@ -4,9 +4,9 @@ gamma_fake_node:
   ros__parameters:
     link_path: /tmp/gamma_fake   # robot_bridge の device に渡すシンボリックリンク
     tick_hz: 100
-    # 脚リンクの寸法と車高の範囲（linkage.*）は rabbits_description の config/gamma_linkage.yaml を launch で一緒に渡す
+    # 脚リンクの寸法・車高の範囲・脚の方位角（linkage.*、LEG_AZIMUTH を含む）は rabbits_description の
+    # config/gamma_linkage.yaml を launch で一緒に渡す
     leg:
-      azimuth: [-0.7854, 0.7854, -2.3562, 2.3562]   # [rad] LEG_AZIMUTH: FR, FL, BR, BL
       ramp_rate: 0.5             # [rad/s] LEG_RAMP_RATE
     wheel:
       wheel_d: 0.075             # [m] WHEEL_D（φ75）

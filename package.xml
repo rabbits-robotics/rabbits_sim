@@ -11,6 +11,7 @@
 
   <depend>rclcpp</depend>
   <depend>rabcl</depend>
+  <depend>rabbits_description</depend>
 
   <exec_depend>ros2launch</exec_depend>
 

@@ -2,10 +2,12 @@
 // ROS のトピックは持たない。定数は params ファイル（config/gamma.yaml）で渡す。未設定ならエラーで終了
 #include <chrono>
 #include <memory>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rabbits_description/linkage_params.hpp>
 #include <rabcl/protocol/protocol.hpp>
 
 #include "rabbits_sim/fake_firmware.hpp"
@@ -71,57 +73,16 @@ private:
     return false;
   }
 
-  // [x, z] の 2 要素パラメータ
-  bool RequirePair(const std::string & name, float & x, float & z)
-  {
-    std::vector<double> v;
-    if (!Require(name, v)) {
-      return false;
-    }
-    if (v.size() != 2) {
-      RCLCPP_ERROR(this->get_logger(), "parameter '%s' must have 2 values [x, z]", name.c_str());
-      return false;
-    }
-    x = static_cast<float>(v[0]);
-    z = static_cast<float>(v[1]);
-    return true;
-  }
-
   bool LoadConfig(GammaConfig & c)
   {
     double v = 0.0;
-    std::vector<double> azimuth;
     bool ok = true;
-    // 脚リンクの寸法（rabbits_description の config/gamma_linkage.yaml を launch で渡す）
-    rabcl::LegLinkageConfig & l = c.posture.linkage;
-    ok = Require("linkage.crank_length", v) && ok;
-    l.crank_length = static_cast<float>(v);
-    ok = Require("linkage.crank_angle_zero", v) && ok;
-    l.crank_angle_zero = static_cast<float>(v);
-    ok = Require("linkage.coupler_length", v) && ok;
-    l.coupler_length = static_cast<float>(v);
-    ok = Require("linkage.bar_length", v) && ok;
-    l.bar_length = static_cast<float>(v);
-    ok = RequirePair("linkage.bar_pivot", l.bar_pivot_x, l.bar_pivot_z) && ok;
-    ok = RequirePair("linkage.coupler_pin", l.coupler_pin_x, l.coupler_pin_z) && ok;
-    ok = RequirePair("linkage.wheel", l.wheel_x, l.wheel_z) && ok;
-    ok = Require("linkage.theta_max", v) && ok;
-    l.theta_max = static_cast<float>(v);
-    ok = Require("linkage.drop_min", v) && ok;
-    c.posture.drop_min = static_cast<float>(v);
-    ok = Require("linkage.drop_max", v) && ok;
-    c.posture.drop_max = static_cast<float>(v);
-    ok = Require("linkage.tilt_radius", v) && ok;
-    c.posture.tilt_radius = static_cast<float>(v);
-    ok = Require("leg.azimuth", azimuth) && ok;
-    if (azimuth.size() != 4) {
-      RCLCPP_ERROR(
-        this->get_logger(), "parameter 'leg.azimuth' must have 4 values (FR, FL, BR, BL)");
+    // 脚リンクの寸法・車高の範囲・脚の方位角（rabbits_description の config/gamma_linkage.yaml を launch で渡す）
+    try {
+      c.posture = rabbits_description::LoadBodyPosture(*this);
+    } catch (const std::invalid_argument & e) {
+      RCLCPP_ERROR(this->get_logger(), "%s", e.what());  // what() にパラメータ名と渡す yaml
       ok = false;
-    } else {
-      for (size_t i = 0; i < 4; ++i) {
-        c.posture.leg_azimuth[i] = static_cast<float>(azimuth[i]);
-      }
     }
     ok = Require("leg.ramp_rate", v) && ok;
     c.leg_ramp_rate = static_cast<float>(v);
