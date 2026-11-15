@@ -18,6 +18,7 @@ namespace proto = rabcl::protocol;
 // 関節番号（rabbits_bridge config/gamma.yaml の並び）
 constexpr uint8_t YAW = 0;
 constexpr uint8_t PITCH = 1;
+constexpr uint8_t ROLL = 2;
 constexpr uint8_t WHEEL_FR = 3;
 constexpr uint8_t WHEEL_BL = 6;
 constexpr uint8_t LEG_FR = 7;
@@ -55,7 +56,8 @@ GammaConfig TestConfig()
   c.chassis_rot_max = 3.0f;
   c.spin_speed = 5.0f;
   c.watchdog_s = 0.5f;
-  c.follow_neck_pitch_roll = false;
+  c.pitch_min = -PI / 12.0f;
+  c.pitch_max = PI / 6.0f;
   return c;
 }
 
@@ -298,22 +300,26 @@ TEST_F(GammaModelTest, YawCountersOnlyInfiniteRotationPart)
   EXPECT_NEAR(Angle(YAW), -0.6f, 1e-3f);
 }
 
-TEST_F(GammaModelTest, NeckPitchRollHoldZeroByDefault)
+TEST_F(GammaModelTest, PitchFollowsJointCmdWithinLimitsAndRollStaysZero)
 {
-  SendJointCmd(PITCH, 0.3f);
-  StepAlive(0.05);
-  EXPECT_FLOAT_EQ(Angle(PITCH), 0.0f);
+  StepAlive(DT);
+  EXPECT_FLOAT_EQ(Angle(PITCH), 0.0f);  // JOINT_CMD が来るまで 0（ファームはトルクを出さない）
 
-  GammaConfig c = TestConfig();
-  c.follow_neck_pitch_roll = true;
-  GammaModel following(c);
-  proto::JointCmd cmd = {};
-  cmd.id = PITCH;
-  cmd.position = 0.3f;
-  following.SetJointCmd(cmd);
-  following.OnCommandReceived(0.0);
-  following.Update(0.01, 0.01);
-  EXPECT_FLOAT_EQ(following.joint_angle(PITCH), 0.3f);
+  SendJointCmd(PITCH, 0.3f);
+  StepAlive(DT);
+  EXPECT_FLOAT_EQ(Angle(PITCH), 0.3f);  // モータは即応答
+
+  SendJointCmd(PITCH, 1.0f);
+  StepAlive(DT);
+  EXPECT_NEAR(Angle(PITCH), PI / 6.0f, 1e-6f);  // 見下ろし +30° で止まる（ファームのクランプと同じ）
+
+  SendJointCmd(PITCH, -0.5f);
+  StepAlive(DT);
+  EXPECT_NEAR(Angle(PITCH), -PI / 12.0f, 1e-6f);  // 見上げ −15°
+
+  SendJointCmd(ROLL, 0.2f);
+  StepAlive(DT);
+  EXPECT_FLOAT_EQ(Angle(ROLL), 0.0f);  // ロール軸は無い
 }
 
 TEST_F(GammaModelTest, JointCmdForNonNeckIsIgnored)
@@ -386,7 +392,26 @@ TEST_F(GammaModelTest, MotorCommandsCarryYawAfterJointCmd)
       found = true;
       EXPECT_FLOAT_EQ(cmds[i].position, 0.4f);
     }
-    EXPECT_NE(cmds[i].id, PITCH);  // follow_neck_pitch_roll が false なら Pitch / Roll は入らない
+    EXPECT_NE(cmds[i].id, PITCH);  // Pitch は JOINT_CMD 未受信なので入らない
+    EXPECT_NE(cmds[i].id, ROLL);   // ロール軸は無いので常に入らない
+  }
+  EXPECT_TRUE(found);
+}
+
+TEST_F(GammaModelTest, MotorCommandsCarryClampedPitchAfterJointCmd)
+{
+  SendJointCmd(PITCH, 0.9f);
+  StepAlive(DT);
+  proto::MotorCommand cmds[proto::MAX_MOTOR_COMMANDS];
+  const uint8_t n = model_.GetMotorCommands(cmds);
+  bool found = false;
+  for (uint8_t i = 0; i < n; ++i) {
+    if (cmds[i].id == PITCH) {
+      found = true;
+      EXPECT_NEAR(cmds[i].position, PI / 6.0f, 1e-6f);  // モータへ送る目標 = クランプ後
+      EXPECT_FLOAT_EQ(cmds[i].effort, 0.0f);
+    }
+    EXPECT_NE(cmds[i].id, ROLL);
   }
   EXPECT_TRUE(found);
 }

@@ -29,7 +29,8 @@ struct GammaConfig
   float chassis_rot_max;    // [rad/s]
   float spin_speed;         // [rad/s] 無限回転
   float watchdog_s;         // [s] 途絶判定
-  bool follow_neck_pitch_roll;  // true: JOINT_CMD の pitch / roll をそのまま関節角に（確認用）
+  float pitch_min;          // [rad] 首 Pitch の可動角（ファームの PITCH_MIN / MAX。見上げ −15°、見下ろし +30°）
+  float pitch_max;
 };
 
 class GammaModel : public RobotModel
@@ -72,8 +73,8 @@ public:
   void OnCommandReceived(double now_s) override;
   void Update(double now_s, double dt) override;
   void GetJointStates(rabcl::protocol::JointState * out) const override;
-  // 車輪は常に（velocity）、脚は BODY_POSE を受けてから（ランプ後の目標）、首 Yaw は JOINT_CMD を受けてから、
-  // Pitch / Roll は follow_neck_pitch_roll のときだけ。effort は 0
+  // 車輪は常に（velocity）、脚は BODY_POSE を受けてから（ランプ後の目標）、首 Yaw / Pitch はそれぞれの JOINT_CMD を
+  // 受けてから（Pitch は可動角にクランプした目標）。Roll はモータが無いので入らない。effort は 0
   uint8_t GetMotorCommands(rabcl::protocol::MotorCommand * out) const override;
   uint32_t error_flags() const override;
 
@@ -100,6 +101,7 @@ private:
   bool body_pose_present_ = false;
   float neck_cmd_[3] = {0.0f, 0.0f, 0.0f};  // yaw, pitch, roll の JOINT_CMD
   bool yaw_cmd_present_ = false;
+  bool pitch_cmd_present_ = false;
   bool infinite_rotation_ = false;
   bool lost_ = true;
 

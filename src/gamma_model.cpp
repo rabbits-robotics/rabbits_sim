@@ -51,6 +51,8 @@ void GammaModel::SetJointCmd(const rabcl::protocol::JointCmd & cmd)
   neck_cmd_[cmd.id] = cmd.position;
   if (cmd.id == YAW) {
     yaw_cmd_present_ = true;
+  } else if (cmd.id == PITCH) {
+    pitch_cmd_present_ = true;
   }
 }
 
@@ -124,9 +126,14 @@ void GammaModel::Update(double now_s, double dt_in)
   if (yaw_cmd_present_) {
     angle_[YAW] = gimbal_.Solve({neck_cmd_[YAW], 0.0f, 0.0f}, body).yaw;
   }
-  // 首 Pitch / Roll: ファームは機構決定まで送らない → 0。確認用に追従させる設定あり
-  angle_[PITCH] = config_.follow_neck_pitch_roll ? neck_cmd_[PITCH] : 0.0f;
-  angle_[ROLL] = config_.follow_neck_pitch_roll ? neck_cmd_[ROLL] : 0.0f;
+  // 首 Pitch: 視点目標 − 胴体の向き を可動角に収めて MIT 位置指令（ファームと同じ）。モータは即応答。
+  // JOINT_CMD が来るまでは 0（ファームはトルクを出さない）。Roll はモータが無いので常に 0
+  if (pitch_cmd_present_) {
+    angle_[PITCH] = std::clamp(
+      gimbal_.Solve({0.0f, neck_cmd_[PITCH], 0.0f}, body).pitch, config_.pitch_min,
+        config_.pitch_max);
+  }
+  angle_[ROLL] = 0.0f;
 }
 
 void GammaModel::GetJointStates(rabcl::protocol::JointState * out) const
@@ -145,9 +152,8 @@ uint8_t GammaModel::GetMotorCommands(rabcl::protocol::MotorCommand * out) const
   if (yaw_cmd_present_) {
     out[n++] = {YAW, angle_[YAW], 0.0f, 0.0f};  // Gimbal の出力。モータは即応答なので関節角と同じ
   }
-  if (config_.follow_neck_pitch_roll) {
-    out[n++] = {PITCH, neck_cmd_[PITCH], 0.0f, 0.0f};
-    out[n++] = {ROLL, neck_cmd_[ROLL], 0.0f, 0.0f};
+  if (pitch_cmd_present_) {
+    out[n++] = {PITCH, angle_[PITCH], 0.0f, 0.0f};  // クランプ後の目標 = 関節角
   }
   for (uint8_t i = 0; i < 4; ++i) {
     out[n++] = {static_cast<uint8_t>(WHEEL_FR + i), 0.0f, velocity_[WHEEL_FR + i], 0.0f};

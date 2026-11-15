@@ -98,7 +98,10 @@ private:
     c.spin_speed = static_cast<float>(v);
     ok = Require("watchdog_s", v) && ok;
     c.watchdog_s = static_cast<float>(v);
-    c.follow_neck_pitch_roll = this->declare_parameter<bool>("follow_neck_pitch_roll", false);
+    ok = Require("neck.pitch_min", v) && ok;
+    c.pitch_min = static_cast<float>(v);
+    ok = Require("neck.pitch_max", v) && ok;
+    c.pitch_max = static_cast<float>(v);
     return ok;
   }
 
