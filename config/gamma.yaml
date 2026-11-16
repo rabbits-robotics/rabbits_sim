@@ -14,7 +14,7 @@ gamma_fake_node:
     wheel:
       wheel_d: 0.075             # [m] WHEEL_D（φ75）
       body_d: 0.328              # [m] BODY_D（車輪の接地点の配置径 = 2 × tilt_radius、中間の車高）
-      sign: -1.0                 # WHEEL_SIGN
+      sign: 1.0                  # WHEEL_SIGN（gamma は 1:1 ギアで逆回転。2026-11-16 実機で確定）
     chassis:
       vel_max: 1.0               # [m/s] CHASSIS_VEL_MAX
       rot_max: 3.0               # [rad/s] CHASSIS_ROT_MAX

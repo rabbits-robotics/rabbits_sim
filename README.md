@@ -45,7 +45,7 @@ ros2 run rabbits_bridge robot_bridge_node --ros-args --params-file $(ros2 pkg pr
 ros2 topic echo /joint_states --once
 ```
 
-**rviz での車輪の向きの読み方**: 車輪の角速度は `OmniDrive::CalcVel` の出力 × `wheel_sign` をそのまま積分している（ファームと同じ式）。URDF の規約（車輪の z 軸が機体の外側）に対して `OmniDrive` の並進項と回転項の符号関係が揃っていないため、現状の `wheel_sign = -1` では **前進指令で車輪が後ろに転がって見え、旋回は幾何どおりに見える**。これは偽ファームや URDF の不具合ではなく、実機で `WHEEL_SIGN` を確定したあとに rabcl の `OmniDrive` の符号（または URDF の軸向き）を揃えるタスクで解消する。それまでは「式どおりに回っているか」を見る。
+**rviz での車輪の向き**: 車輪の角速度は `OmniDrive::CalcVel` の出力 × `wheel_sign` をそのまま積分している（ファームと同じ式）。`wheel_sign` は 2026-11-16 に実機で +1 に確定（gamma は 1:1 ギア 1 段でモータと車輪が逆回転。beta は −1）。+1 では前進・横移動・旋回のどれも rviz の転がりが実機と一致する（−1 のときは前進が逆に見えていた）。
 
 パラメータ（`gamma_fake_node`）: `link_path`（既定 `/tmp/gamma_fake`）、`tick_hz`（既定 100）、`leg.ramp_rate` / `neck.pitch_min` / `neck.pitch_max` / `wheel.*` / `chassis.*` / `watchdog_s`（必須。`config/gamma.yaml` で渡す）、`linkage.*`（必須。rabbits_description の `config/gamma_linkage.yaml` で渡す）。無ければエラーで終了。
 
